@@ -27,6 +27,12 @@ go.work.sum
 # env file
 .env
 
+# Hacksplaining config (contains API key)
+.hacksplaining
+
+# Go Task cache
+.task/
+
 # Editor/IDE
 # .idea/
 # .vscode/
