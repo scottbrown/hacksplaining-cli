@@ -1,10 +1,22 @@
 version: "3"
 
 vars:
-  BUILD_DIR: .build
-  BINARY: hacksplaining
-  VERSION:
-    sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+  bin_name: hacksplaining
+  repo_name: hacksplaining-cli
+  app_repo: github.com/scottbrown/{{ .repo_name }}
+  pkg_name: "{{ .app_repo }}/cmd"
+
+  pwd:
+    sh: pwd
+
+  build_dir: "{{ .pwd }}/.build"
+  dist_dir: "{{ .pwd }}/.dist"
+
+  git_version:
+    sh: git tag --points-at HEAD | head -1 | grep . || git rev-parse --abbrev-ref HEAD
+  git_commit:
+    sh: git rev-parse --short HEAD
+  ldflags: "-X {{ .app_repo }}.VERSION={{ .git_version }} -X {{ .app_repo }}.COMMIT={{ .git_commit }}"
 
 tasks:
   default:
@@ -14,20 +26,129 @@ tasks:
   build:
     desc: Build the CLI binary
     cmds:
-      - go build -ldflags "-X github.com/scottbrown/hacksplaining-cli/cmd.Version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY}} .
+      - go build -ldflags "{{ .ldflags }}" -o {{ .build_dir }}/{{ .bin_name }} {{ .pkg_name }}
     sources:
       - "**/*.go"
       - go.mod
       - go.sum
     generates:
-      - "{{.BUILD_DIR}}/{{.BINARY}}"
+      - "{{.build_dir}}/{{.bin_name}}"
+
+  fmt:
+    desc: "Formats the code"
+    cmds:
+      - go fmt ./...
 
   test:
     desc: Run tests
     cmds:
       - go test ./...
 
+  check:
+    desc: "Runs all security scans"
+    deps: [ sast, vet, vuln]
+
+  sast:
+    desc: "Scans for code vulns"
+    cmds:
+      - gosec ./...
+
+  vet:
+    desc: "Scans for Go issues"
+    cmds:
+      - go vet ./...
+
+  vuln:
+    desc: "Scans for 3rd party lib vulns"
+    cmds:
+      - govulncheck ./...
+
   clean:
     desc: Remove build artifacts
     cmds:
-      - rm -f {{.BUILD_DIR}}
+      - rm -f {{.build_dir}} {{.dist_dir}}
+
+  release:
+    desc: "Creates release artifacts"
+    deps:
+      - task: release-all
+    requires:
+      vars:
+        - VERSION
+
+  build-deps:
+    cmds:
+      - mkdir -p {{ .dist_dir }}
+    internal: true
+
+  build-all:
+    desc: "Builds all artifacts"
+    deps: [ build-linux, build-windows, build-darwin ]
+
+  build-linux:
+    desc: "Builds a linux artifact"
+    cmds:
+      - for: [ amd64, arm64 ]
+        cmd: GOOS=$GOOS GOARCH={{ .ITEM }} go build -ldflags "{{ .ldflags }}" -o {{ .build_dir }}/linux-{{ .ITEM }}/{{ .bin_name }} {{ .app_repo }}/cmd
+    env:
+      GOOS: linux
+
+  build-windows:
+    desc: "Builds a Windows artifact"
+    cmds:
+      - for: [ amd64, arm64 ]
+        cmd: GOOS=$GOOS GOARCH={{ .ITEM }} go build -ldflags "{{ .ldflags }}" -o {{ .build_dir }}/windows-{{ .ITEM }}/{{ .bin_name }}.exe {{ .app_repo }}/cmd
+    env:
+      GOOS: windows
+
+  build-darwin:
+    desc: "Builds a MacOS artifact"
+    cmds:
+      - for: [ amd64, arm64 ]
+        cmd: GOOS=darwin GOARCH={{ .ITEM }} go build -ldflags "{{ .ldflags }}" -o {{ .build_dir }}/darwin-{{ .ITEM }}/{{ .bin_name }} {{ .app_repo }}/cmd
+    env:
+      GOOS: darwin
+
+  release-all:
+    desc: "Creates all releasable artifacts"
+    deps: [ build-deps, release-linux, release-windows, release-darwin ]
+
+  release-linux:
+    desc: "Creates a linux releasable artifact"
+    deps: [ build-linux ]
+    cmds:
+      - for: [ amd64, arm64 ]
+        cmd: tar cfz {{ .dist_dir }}/{{ .bin_name }}_{{ .VERSION }}_linux_{{ .ITEM }}.tar.gz -C {{ .build_dir }}/linux-{{ .ITEM }} .
+    requires:
+      vars:
+        - VERSION
+
+  release-windows:
+    desc: "Creates a Windows releasable artifact"
+    deps: [ build-windows ]
+    cmds:
+      - for: [ amd64, arm64 ]
+        cmd: tar cfz {{ .dist_dir }}/{{ .bin_name }}_{{ .VERSION }}_windows_{{ .ITEM }}.tar.gz -C {{ .build_dir }}/windows-{{ .ITEM }} .
+    requires:
+      vars:
+        - VERSION
+
+  release-darwin:
+    desc: "Creates a MacOS releasable artifact"
+    deps: [ build-darwin ]
+    cmds:
+      - for: [ amd64, arm64 ]
+        cmd: tar cfz {{ .dist_dir }}/{{ .bin_name }}_{{ .VERSION }}_darwin_{{ .ITEM }}.tar.gz -C {{ .build_dir }}/darwin-{{ .ITEM }} .
+    requires:
+      vars:
+        - VERSION
+
+  sbom:
+    desc: "Generates an SBOM"
+    cmds:
+      - cyclonedx-gomod mod -licenses -json -output {{ .dist_dir }}/bom.json
+
+  bench:
+    desc: "Benchmark the code"
+    cmds:
+      - go test -bench=. -benchmem -benchtime=5s -run=^$ ./...
