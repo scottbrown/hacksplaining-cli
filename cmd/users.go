@@ -53,6 +53,9 @@ func listUsers() error {
 }
 
 func getUser(email string) error {
+	if err := validateEmail(email); err != nil {
+		return err
+	}
 	user, err := client.GetUser(email)
 	if err != nil {
 		return err

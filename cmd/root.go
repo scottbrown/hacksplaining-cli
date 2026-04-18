@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"net/mail"
 	"os"
+	"time"
 
 	"github.com/scottbrown/hacksplaining-cli/internal/api"
 	"github.com/scottbrown/hacksplaining-cli/internal/config"
@@ -10,6 +12,7 @@ import (
 )
 
 var client *api.Client
+var timeoutSeconds int
 
 var rootCmd = &cobra.Command{
 	Use:   "hacksplaining",
@@ -23,10 +26,17 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		client = api.NewClient(apiKey)
+		client = api.NewClient(apiKey, time.Duration(timeoutSeconds)*time.Second)
 		return nil
 	},
 	SilenceUsage: true,
+}
+
+func validateEmail(email string) error {
+	if _, err := mail.ParseAddress(email); err != nil {
+		return fmt.Errorf("invalid email address %q", email)
+	}
+	return nil
 }
 
 func Execute() {
@@ -37,6 +47,7 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().IntVar(&timeoutSeconds, "timeout-seconds", 30, "HTTP request timeout in seconds")
 	rootCmd.AddCommand(usersCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(removeCmd)

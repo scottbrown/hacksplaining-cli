@@ -20,6 +20,9 @@ var addCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		email := args[0]
+		if err := validateEmail(email); err != nil {
+			return err
+		}
 
 		var req *api.AddUserRequest
 		if addSubject != "" || addMessage != "" || addGroupID != 0 {
