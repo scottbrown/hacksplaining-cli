@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"net/mail"
 	"os"
 
 	"github.com/scottbrown/hacksplaining-cli/internal/api"
@@ -27,6 +28,13 @@ var rootCmd = &cobra.Command{
 		return nil
 	},
 	SilenceUsage: true,
+}
+
+func validateEmail(email string) error {
+	if _, err := mail.ParseAddress(email); err != nil {
+		return fmt.Errorf("invalid email address %q", email)
+	}
+	return nil
 }
 
 func Execute() {

@@ -12,6 +12,9 @@ var removeCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		email := args[0]
+		if err := validateEmail(email); err != nil {
+			return err
+		}
 		if err := client.RemoveUser(email); err != nil {
 			return err
 		}

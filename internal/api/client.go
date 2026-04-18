@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 )
 
 const BaseURL = "https://hacksplaining.com/api/v1"
@@ -44,7 +46,7 @@ type AddUserRequest struct {
 func NewClient(apiKey string) *Client {
 	return &Client{
 		apiKey:     apiKey,
-		httpClient: &http.Client{},
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 		baseURL:    BaseURL,
 	}
 }
@@ -87,7 +89,7 @@ func (c *Client) ListUsers() ([]User, error) {
 }
 
 func (c *Client) GetUser(email string) (*User, error) {
-	resp, err := c.doRequest(http.MethodGet, "/users/"+email, nil)
+	resp, err := c.doRequest(http.MethodGet, "/users/"+url.PathEscape(email), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +116,7 @@ func (c *Client) AddUser(email string, req *AddUserRequest) (int, error) {
 		body = strings.NewReader(string(data))
 	}
 
-	resp, err := c.doRequest(http.MethodPut, "/users/"+email, body)
+	resp, err := c.doRequest(http.MethodPut, "/users/"+url.PathEscape(email), body)
 	if err != nil {
 		return 0, err
 	}
@@ -129,7 +131,7 @@ func (c *Client) AddUser(email string, req *AddUserRequest) (int, error) {
 }
 
 func (c *Client) RemoveUser(email string) error {
-	resp, err := c.doRequest(http.MethodDelete, "/users/"+email, nil)
+	resp, err := c.doRequest(http.MethodDelete, "/users/"+url.PathEscape(email), nil)
 	if err != nil {
 		return err
 	}
@@ -158,7 +160,7 @@ func (c *Client) RemindUser(email string, subject, message string) (int, error) 
 		body = strings.NewReader(string(data))
 	}
 
-	resp, err := c.doRequest(http.MethodPut, "/users/"+email+"/reminder", body)
+	resp, err := c.doRequest(http.MethodPut, "/users/"+url.PathEscape(email)+"/reminder", body)
 	if err != nil {
 		return 0, err
 	}
@@ -175,9 +177,5 @@ func (c *Client) RemindUser(email string, subject, message string) (int, error) 
 }
 
 func parseError(resp *http.Response) error {
-	body, _ := io.ReadAll(resp.Body)
-	if len(body) > 0 {
-		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
-	}
 	return fmt.Errorf("HTTP %d", resp.StatusCode)
 }
