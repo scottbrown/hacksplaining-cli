@@ -12,7 +12,7 @@ import (
 )
 
 var client *api.Client
-var httpTimeout time.Duration
+var timeoutSeconds int
 
 var rootCmd = &cobra.Command{
 	Use:   "hacksplaining",
@@ -26,7 +26,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		client = api.NewClient(apiKey, httpTimeout)
+		client = api.NewClient(apiKey, time.Duration(timeoutSeconds)*time.Second)
 		return nil
 	},
 	SilenceUsage: true,
@@ -47,7 +47,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().DurationVar(&httpTimeout, "timeout", 30*time.Second, "HTTP request timeout (e.g. 10s, 1m)")
+	rootCmd.PersistentFlags().IntVar(&timeoutSeconds, "timeout-seconds", 30, "HTTP request timeout in seconds")
 	rootCmd.AddCommand(usersCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(removeCmd)
