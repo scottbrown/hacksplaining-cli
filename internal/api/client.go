@@ -43,10 +43,10 @@ type AddUserRequest struct {
 	GroupID int    `json:"groupId,omitempty"`
 }
 
-func NewClient(apiKey string) *Client {
+func NewClient(apiKey string, timeout time.Duration) *Client {
 	return &Client{
 		apiKey:     apiKey,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &http.Client{Timeout: timeout},
 		baseURL:    BaseURL,
 	}
 }

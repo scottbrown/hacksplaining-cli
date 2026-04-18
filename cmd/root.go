@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/mail"
 	"os"
+	"time"
 
 	"github.com/scottbrown/hacksplaining-cli/internal/api"
 	"github.com/scottbrown/hacksplaining-cli/internal/config"
@@ -11,6 +12,7 @@ import (
 )
 
 var client *api.Client
+var httpTimeout time.Duration
 
 var rootCmd = &cobra.Command{
 	Use:   "hacksplaining",
@@ -24,7 +26,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		client = api.NewClient(apiKey)
+		client = api.NewClient(apiKey, httpTimeout)
 		return nil
 	},
 	SilenceUsage: true,
@@ -45,6 +47,7 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().DurationVar(&httpTimeout, "timeout", 30*time.Second, "HTTP request timeout (e.g. 10s, 1m)")
 	rootCmd.AddCommand(usersCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(removeCmd)
