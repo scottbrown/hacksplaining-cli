@@ -4,6 +4,19 @@ A CLI for the [Hacksplaining](https://hacksplaining.com) API. Manage users and t
 
 ## Installation
 
+### macOS (signed installer)
+
+Download the latest `hacksplaining_<version>_darwin.pkg` from the
+[Releases page](https://github.com/scottbrown/hacksplaining-cli/releases) and
+double-click it. The package is signed and notarized by Apple, so Gatekeeper
+will allow it without warnings. It installs `hacksplaining` to
+`/usr/local/bin`.
+
+Signed per-architecture tarballs (`darwin_amd64`, `darwin_arm64`) are also
+attached to each release.
+
+### From source
+
 Requires Go 1.21+ and [Task](https://taskfile.dev).
 
 ```bash
