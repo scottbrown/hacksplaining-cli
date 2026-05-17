@@ -32,18 +32,21 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        env:
+          GOTOOLCHAIN: auto
+        run: |
+          go install github.com/go-task/task/v3/cmd/task@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - name: Compile linux and windows versions
         run: |
           mkdir -p .dist
           task release-linux release-windows VERSION="${GITHUB_REF_NAME}"
       - name: Generate SBOM
-        uses: CycloneDX/gh-gomod-generate-sbom@v2
-        with:
-          version: v1
-          args: mod -licenses -json -output .dist/bom.json
+        env:
+          GOTOOLCHAIN: auto
+        run: |
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+          task sbom
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
@@ -68,9 +71,11 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+        env:
+          GOTOOLCHAIN: auto
+        run: |
+          go install github.com/go-task/task/v3/cmd/task@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - name: Build macOS binaries
         run: |
           mkdir -p .build/darwin-amd64 .build/darwin-arm64
