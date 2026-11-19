@@ -17,7 +17,7 @@ attached to each release.
 
 ### From source
 
-Requires Go 1.21+ and [Task](https://taskfile.dev).
+Requires Go 1.27.4+ and [Task](https://taskfile.dev).
 
 ```bash
 git clone git@github.com:scottbrown/hacksplaining-cli.git
